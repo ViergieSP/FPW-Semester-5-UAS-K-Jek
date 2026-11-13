@@ -32,7 +32,7 @@ class RegisteredUserController extends Controller
         ]);
 
         // Simpan foto ke storage/app/public/profile_photos
-        $profilePath = $request->file('profile_photo')->store('profile_photos', 'public');
+        $profilePath = $request->file('profile_photo')->store('profile_photos', 's3');
 
         $user = User::create([
             'name' => $request->name,
