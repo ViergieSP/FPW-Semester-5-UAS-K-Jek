@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable
 {
@@ -17,7 +18,7 @@ class User extends Authenticatable
         'npm',
         'phone_number',
         'role',
-        'ktm_photo',
+        'profile_photo',
         'verification_status',
         'rejection_reason',
         'password'
@@ -64,5 +65,14 @@ class User extends Authenticatable
     public function reviewsReceived(): HasMany
     {
         return $this->hasMany(Review::class, 'driver_id');
+    }
+
+    public function getProfileUrlAttribute(): ?string
+    {
+        if (!$this->profile_photo) {
+            return null;
+        }
+
+        return Storage::disk('s3')->url($this->profile_photo);
     }
 }
