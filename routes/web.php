@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Driver\OrderBoardController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -24,9 +25,9 @@ Route::get('/verification-status', function () {
     if (auth()->user()->verification_status === 'approved' || auth()->user()->role === 'admin') {
         return redirect()->route('dashboard');
     }
+
     return view('auth.student-verification-status');
 })->middleware('auth')->name('verification.notice.student');
-
 
 // ==========================================================
 // 1. GRUP RUTE ADMIN
@@ -37,7 +38,6 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     })->name('dashboard');
 });
 
-
 // ==========================================================
 // 2. GRUP RUTE DRIVER
 // ==========================================================
@@ -45,8 +45,10 @@ Route::middleware(['auth', 'role:driver', 'verified.student'])->prefix('driver')
     Route::get('/dashboard', function () {
         return view('driver.dashboard'); // Nanti diganti Controller
     })->name('dashboard');
-});
 
+    Route::get('/orders', [OrderBoardController::class, 'index'])->name('orders.index');
+    Route::post('/orders/{order}/take', [OrderBoardController::class, 'take'])->name('orders.take');
+});
 
 // ==========================================================
 // 3. GRUP RUTE CUSTOMER
@@ -57,7 +59,6 @@ Route::middleware(['auth', 'role:customer', 'verified.student'])->prefix('custom
     })->name('dashboard');
 });
 
-
 // ==========================================================
 // RUTE PROFIL & UBAH KATA SANDI
 // ==========================================================
@@ -67,4 +68,4 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-require __DIR__ . '/auth.php';
+require __DIR__.'/auth.php';

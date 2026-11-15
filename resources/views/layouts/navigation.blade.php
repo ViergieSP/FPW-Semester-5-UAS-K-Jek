@@ -25,7 +25,9 @@
 
                     @elseif(auth()->user()->isDriver() && auth()->user()->isVerified())
                         {{-- Menu Khusus Driver --}}
-                        <x-nav-link href="#">Board Pesanan</x-nav-link>
+                        <x-nav-link :href="route('driver.orders.index')" :active="request()->routeIs('driver.orders.*')">
+                            Board Pesanan
+                        </x-nav-link>
                         <x-nav-link href="#">Riwayat Pengantaran</x-nav-link>
 
                     @elseif(auth()->user()->isCustomer() && auth()->user()->isVerified())
@@ -95,6 +97,12 @@
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
+
+            @if(auth()->user()->isDriver() && auth()->user()->isVerified())
+                <x-responsive-nav-link :href="route('driver.orders.index')" :active="request()->routeIs('driver.orders.*')">
+                    Board Pesanan
+                </x-responsive-nav-link>
+            @endif
         </div>
 
         <!-- Responsive Settings Options -->
