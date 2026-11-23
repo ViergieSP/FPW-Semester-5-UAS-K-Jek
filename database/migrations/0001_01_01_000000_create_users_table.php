@@ -14,6 +14,8 @@ return new class extends Migration {
             $table->string('npm')->unique();
             $table->string('phone_number');
             $table->enum('role', ['admin', 'driver', 'customer'])->default('customer');
+            $table->string('vehicle_name')->nullable();
+            $table->string('license_plate', 20)->nullable();
             $table->string('profile_photo')->nullable();
             $table->enum('verification_status', ['pending', 'approved', 'rejected'])->default('pending');
             $table->text('rejection_reason')->nullable();

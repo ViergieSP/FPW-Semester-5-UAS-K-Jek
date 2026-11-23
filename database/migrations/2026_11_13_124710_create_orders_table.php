@@ -14,6 +14,8 @@ return new class extends Migration {
             // Relasi ke User
             $table->foreignId('customer_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('driver_id')->nullable()->constrained('users')->onDelete('set null');
+            $table->string('driver_vehicle_name')->nullable();
+            $table->string('driver_license_plate', 20)->nullable();
 
             // Data Titik Jemput
             $table->string('pickup_address');

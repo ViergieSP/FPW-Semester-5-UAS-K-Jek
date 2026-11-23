@@ -92,6 +92,8 @@ class DriverOrderBoardTest extends TestCase
         $this->assertDatabaseHas('orders', [
             'id' => $order->id,
             'driver_id' => $driver->id,
+            'driver_vehicle_name' => $driver->vehicle_name,
+            'driver_license_plate' => $driver->license_plate,
             'status' => 'taken',
         ]);
         $this->assertNotNull($order->refresh()->taken_at);
@@ -121,16 +123,41 @@ class DriverOrderBoardTest extends TestCase
         ]);
     }
 
-    private function createUser(string $role, string $verificationStatus = 'approved'): User
+    public function test_driver_without_vehicle_details_cannot_take_an_order(): void
     {
+        $driver = $this->createUser('driver', 'approved', null, null);
+        $customer = $this->createUser('customer');
+        $order = $this->createOrder($customer, 'KJ-NEED-VEHICLE');
+
+        $response = $this->actingAs($driver)
+            ->post(route('driver.orders.take', $order));
+
+        $response->assertRedirect(route('driver.orders.index'))
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'driver_id' => null,
+            'status' => 'open',
+        ]);
+    }
+
+    private function createUser(
+        string $role,
+        string $verificationStatus = 'approved',
+        ?string $vehicleName = 'Honda Vario 125',
+        ?string $licensePlate = 'T 1234 AB',
+    ): User {
         $id = str()->uuid()->toString();
 
         return User::create([
-            'name' => ucfirst($role).' Test',
+            'name' => ucfirst($role) . ' Test',
             'email' => "{$role}-{$id}@example.test",
             'npm' => $id,
             'phone_number' => '081234567890',
             'role' => $role,
+            'vehicle_name' => $role === 'driver' ? $vehicleName : null,
+            'license_plate' => $role === 'driver' ? $licensePlate : null,
             'verification_status' => $verificationStatus,
             'password' => 'password',
         ]);
