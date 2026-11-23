@@ -2,10 +2,11 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable
@@ -21,7 +22,12 @@ class User extends Authenticatable
         'profile_photo',
         'verification_status',
         'rejection_reason',
-        'password'
+        'is_active',
+        'password',
+    ];
+
+    protected $attributes = [
+        'is_active' => true,
     ];
 
     protected $hidden = ['password', 'remember_token'];
@@ -30,7 +36,16 @@ class User extends Authenticatable
     {
         return [
             'password' => 'hashed',
+            'is_active' => 'boolean',
         ];
+    }
+
+    /**
+     * Akun mahasiswa (customer/driver), tidak termasuk admin.
+     */
+    public function scopeStudents(Builder $query): void
+    {
+        $query->where('role', '!=', 'admin');
     }
 
     // Helper Cek Role
@@ -38,14 +53,17 @@ class User extends Authenticatable
     {
         return $this->role === 'admin';
     }
+
     public function isDriver(): bool
     {
         return $this->role === 'driver';
     }
+
     public function isCustomer(): bool
     {
         return $this->role === 'customer';
     }
+
     public function isVerified(): bool
     {
         return $this->verification_status === 'approved';
@@ -69,7 +87,7 @@ class User extends Authenticatable
 
     public function getProfileUrlAttribute(): ?string
     {
-        if (!$this->profile_photo) {
+        if (! $this->profile_photo) {
             return null;
         }
 

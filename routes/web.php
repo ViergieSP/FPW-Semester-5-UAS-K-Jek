@@ -1,5 +1,11 @@
 <?php
 
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\FareSettingController;
+use App\Http\Controllers\Admin\LocationController;
+use App\Http\Controllers\Admin\UserActivationController;
+use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\UserVerificationController;
 use App\Http\Controllers\Driver\OrderBoardController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
@@ -33,9 +39,18 @@ Route::get('/verification-status', function () {
 // 1. GRUP RUTE ADMIN
 // ==========================================================
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
-    Route::get('/dashboard', function () {
-        return view('admin.dashboard'); // Nanti diganti Controller
-    })->name('dashboard');
+    Route::get('/dashboard', DashboardController::class)->name('dashboard');
+
+    // Pengelolaan akun & antrean verifikasi mahasiswa (W3 / UC-03)
+    Route::get('/users', [UserController::class, 'index'])->name('users.index');
+    Route::get('/users/{student}', [UserController::class, 'show'])->name('users.show');
+    Route::patch('/users/{student}/approve', [UserVerificationController::class, 'approve'])->name('users.approve');
+    Route::patch('/users/{student}/reject', [UserVerificationController::class, 'reject'])->name('users.reject');
+    Route::patch('/users/{student}/activation', [UserActivationController::class, 'toggle'])->name('users.activation');
+
+    // Data master (W4)
+    Route::resource('fare-settings', FareSettingController::class)->except('show');
+    Route::resource('locations', LocationController::class)->except('show');
 });
 
 // ==========================================================
