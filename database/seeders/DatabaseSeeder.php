@@ -29,6 +29,8 @@ class DatabaseSeeder extends Seeder
             'npm' => '2410631170099',
             'phone_number' => '089876543210',
             'role' => 'driver',
+            'vehicle_name' => 'Honda Vario 125',
+            'license_plate' => 'B 1234 CD',
             'verification_status' => 'approved',
             'password' => Hash::make('password123'),
         ]);
