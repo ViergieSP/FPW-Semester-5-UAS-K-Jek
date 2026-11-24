@@ -23,6 +23,8 @@ class RegistrationPhotoUploadTest extends TestCase
             'npm' => '552313333549',
             'phone_number' => '081234567890',
             'role' => 'driver',
+            'vehicle_name' => 'Honda Vario',
+            'license_plate' => 'T 1234 AB',
             'profile_photo' => UploadedFile::fake()->image('ktm.jpg'),
             'password' => 'password-kuat-123',
             'password_confirmation' => 'password-kuat-123',

@@ -30,7 +30,7 @@ class OrderBoardController extends Controller
             ->where('status', 'open')
             ->whereNull('driver_id')
             ->when($search !== null, function (Builder $query) use ($search): void {
-                $keyword = '%'.Str::lower((string) $search).'%';
+                $keyword = '%' . Str::lower((string) $search) . '%';
                 $query->where(function (Builder $query) use ($keyword): void {
                     $query->whereRaw('LOWER(order_code) LIKE ?', [$keyword])
                         ->orWhereRaw('LOWER(pickup_address) LIKE ?', [$keyword])
@@ -39,10 +39,10 @@ class OrderBoardController extends Controller
                 });
             })
             ->when($pickup !== null, function (Builder $query) use ($pickup): void {
-                $query->whereRaw('LOWER(pickup_address) LIKE ?', ['%'.Str::lower((string) $pickup).'%']);
+                $query->whereRaw('LOWER(pickup_address) LIKE ?', ['%' . Str::lower((string) $pickup) . '%']);
             })
             ->when($destination !== null, function (Builder $query) use ($destination): void {
-                $query->whereRaw('LOWER(destination_address) LIKE ?', ['%'.Str::lower((string) $destination).'%']);
+                $query->whereRaw('LOWER(destination_address) LIKE ?', ['%' . Str::lower((string) $destination) . '%']);
             })
             ->orderByDesc('created_at')
             ->orderByDesc('id')
@@ -59,8 +59,13 @@ class OrderBoardController extends Controller
     {
         $driver = $request->user();
 
-        if (! $driver instanceof User) {
+        if (!$driver instanceof User) {
             abort(403);
+        }
+
+        if (!$driver->hasVehicleDetails()) {
+            return to_route('driver.orders.index')
+                ->with('error', 'Lengkapi nama kendaraan dan plat nomor pada profil Anda sebelum mengambil pesanan.');
         }
 
         $wasTaken = DB::transaction(function () use ($driver, $order): bool {
@@ -76,6 +81,8 @@ class OrderBoardController extends Controller
             }
 
             $availableOrder->driver()->associate($driver);
+            $availableOrder->driver_vehicle_name = $driver->vehicle_name;
+            $availableOrder->driver_license_plate = $driver->license_plate;
             $availableOrder->status = 'taken';
             $availableOrder->taken_at = now();
             $availableOrder->save();
@@ -83,7 +90,7 @@ class OrderBoardController extends Controller
             return true;
         });
 
-        if (! $wasTaken) {
+        if (!$wasTaken) {
             return to_route('driver.orders.index')
                 ->with('error', 'Pesanan ini sudah diambil atau tidak lagi tersedia.');
         }

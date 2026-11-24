@@ -15,6 +15,8 @@ class Order extends Model
         'order_code',
         'customer_id',
         'driver_id',
+        'driver_vehicle_name',
+        'driver_license_plate',
         'pickup_address',
         'pickup_latitude',
         'pickup_longitude',
@@ -57,7 +59,13 @@ class Order extends Model
     public function getCustomerWaLinkAttribute(): string
     {
         $phone = preg_replace('/^0/', '62', $this->customer->phone_number);
-        $message = urlencode("Halo {$this->customer->name}, saya driver K-JEK untuk pesanan {$this->order_code}. Posisi saya sedang menuju titik jemput.");
+        $vehicleName = $this->driver_vehicle_name ?? $this->driver?->vehicle_name;
+        $licensePlate = $this->driver_license_plate ?? $this->driver?->license_plate;
+        $vehicleInfo = filled($vehicleName) && filled($licensePlate)
+            ? " Saya menggunakan {$vehicleName} ({$licensePlate})."
+            : '';
+        $message = urlencode("Halo {$this->customer->name}, saya driver K-JEK untuk pesanan {$this->order_code}.{$vehicleInfo} Posisi saya sedang menuju titik jemput.");
+
         return "https://wa.me/{$phone}?text={$message}";
     }
 }

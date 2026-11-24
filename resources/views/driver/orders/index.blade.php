@@ -1,10 +1,20 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex flex-col gap-1">
-            <h2 class="text-xl font-semibold leading-tight text-gray-800">
-                Board Pesanan Terbuka
-            </h2>
-            <p class="text-sm text-gray-500">Temukan pesanan dan ambil perjalanan yang tersedia.</p>
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex flex-col gap-1">
+                <h2 class="text-xl font-semibold leading-tight text-gray-800">
+                    Board Pesanan Terbuka
+                </h2>
+                <p class="text-sm text-gray-500">Temukan pesanan dan ambil perjalanan yang tersedia.</p>
+            </div>
+            @if (auth()->user()->hasVehicleDetails())
+                <div class="inline-flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-1.5 text-sm text-slate-700">
+                    <span class="font-medium">{{ auth()->user()->vehicle_name }}</span>
+                    <span class="rounded bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">
+                        {{ auth()->user()->license_plate }}
+                    </span>
+                </div>
+            @endif
         </div>
     </x-slot>
 
@@ -22,52 +32,48 @@
                 </div>
             @endif
 
+            @if (!auth()->user()->hasVehicleDetails())
+                <div role="alert"
+                    class="flex flex-col justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:flex-row sm:items-center">
+                    <span>Lengkapi nama kendaraan dan plat nomor pada profil Anda sebelum mengambil pesanan.</span>
+                    <a href="{{ route('profile.edit') }}"
+                        class="inline-flex shrink-0 items-center rounded-md bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700">
+                        Lengkapi Profil
+                    </a>
+                </div>
+            @endif
+
             <section class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
-                <form method="GET" action="{{ route('driver.orders.index') }}" class="grid grid-cols-1 gap-4 md:grid-cols-4">
+                <form method="GET" action="{{ route('driver.orders.index') }}"
+                    class="grid grid-cols-1 gap-4 md:grid-cols-4">
                     <div class="md:col-span-2">
                         <label for="search" class="block text-sm font-medium text-gray-700">Pencarian kata kunci</label>
-                        <input
-                            id="search"
-                            name="search"
-                            type="search"
-                            value="{{ $filters['search'] ?? '' }}"
+                        <input id="search" name="search" type="search" value="{{ $filters['search'] ?? '' }}"
                             placeholder="Kode pesanan, alamat, atau catatan"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                        >
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                     </div>
 
                     <div>
                         <label for="pickup" class="block text-sm font-medium text-gray-700">Titik jemput</label>
-                        <input
-                            id="pickup"
-                            name="pickup"
-                            type="text"
-                            value="{{ $filters['pickup'] ?? '' }}"
+                        <input id="pickup" name="pickup" type="text" value="{{ $filters['pickup'] ?? '' }}"
                             placeholder="Cari titik jemput"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                        >
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                     </div>
 
                     <div>
                         <label for="destination" class="block text-sm font-medium text-gray-700">Tujuan</label>
-                        <input
-                            id="destination"
-                            name="destination"
-                            type="text"
-                            value="{{ $filters['destination'] ?? '' }}"
-                            placeholder="Cari tujuan"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                        >
+                        <input id="destination" name="destination" type="text"
+                            value="{{ $filters['destination'] ?? '' }}" placeholder="Cari tujuan"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                     </div>
 
                     <div class="flex flex-wrap items-center gap-3 md:col-span-4">
-                        <button
-                            type="submit"
-                            class="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                        >
+                        <button type="submit"
+                            class="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
                             Cari pesanan
                         </button>
-                        <a href="{{ route('driver.orders.index') }}" class="text-sm font-medium text-gray-600 hover:text-gray-900">
+                        <a href="{{ route('driver.orders.index') }}"
+                            class="text-sm font-medium text-gray-600 hover:text-gray-900">
                             Reset filter
                         </a>
                     </div>
@@ -81,7 +87,8 @@
                             <div class="flex flex-col gap-3">
                                 <div class="flex flex-wrap items-center gap-3">
                                     <h3 class="text-lg font-semibold text-gray-900">{{ $order->order_code }}</h3>
-                                    <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-800">
+                                    <span
+                                        class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-800">
                                         Open
                                     </span>
                                     <span class="text-sm text-gray-500">
@@ -115,10 +122,8 @@
 
                             <form method="POST" action="{{ route('driver.orders.take', $order) }}" class="shrink-0">
                                 @csrf
-                                <button
-                                    type="submit"
-                                    class="inline-flex w-full items-center justify-center rounded-md bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:w-auto"
-                                >
+                                <button type="submit" @disabled(!auth()->user()->hasVehicleDetails())
+                                    class="inline-flex w-full items-center justify-center rounded-md bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto">
                                     Ambil Pesanan
                                 </button>
                             </form>
