@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\LocationController;
 use App\Http\Controllers\Admin\UserActivationController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\UserVerificationController;
+use App\Http\Controllers\Driver\DashboardController as DriverDashboardController;
 use App\Http\Controllers\Driver\OrderBoardController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
@@ -57,12 +58,12 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 // 2. GRUP RUTE DRIVER
 // ==========================================================
 Route::middleware(['auth', 'role:driver', 'verified.student'])->prefix('driver')->name('driver.')->group(function () {
-    Route::get('/dashboard', function () {
-        return view('driver.dashboard'); // Nanti diganti Controller
-    })->name('dashboard');
+    Route::get('/dashboard', DriverDashboardController::class)->name('dashboard');
 
     Route::get('/orders', [OrderBoardController::class, 'index'])->name('orders.index');
     Route::post('/orders/{order}/take', [OrderBoardController::class, 'take'])->name('orders.take');
+    Route::patch('/orders/{order}/on-the-way', [OrderBoardController::class, 'markOnTheWay'])->name('orders.on-the-way');
+    Route::patch('/orders/{order}/complete', [OrderBoardController::class, 'complete'])->name('orders.complete');
 });
 
 // ==========================================================

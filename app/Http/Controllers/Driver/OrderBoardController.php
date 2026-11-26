@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -30,7 +31,7 @@ class OrderBoardController extends Controller
             ->where('status', 'open')
             ->whereNull('driver_id')
             ->when($search !== null, function (Builder $query) use ($search): void {
-                $keyword = '%' . Str::lower((string) $search) . '%';
+                $keyword = '%'.Str::lower((string) $search).'%';
                 $query->where(function (Builder $query) use ($keyword): void {
                     $query->whereRaw('LOWER(order_code) LIKE ?', [$keyword])
                         ->orWhereRaw('LOWER(pickup_address) LIKE ?', [$keyword])
@@ -39,10 +40,10 @@ class OrderBoardController extends Controller
                 });
             })
             ->when($pickup !== null, function (Builder $query) use ($pickup): void {
-                $query->whereRaw('LOWER(pickup_address) LIKE ?', ['%' . Str::lower((string) $pickup) . '%']);
+                $query->whereRaw('LOWER(pickup_address) LIKE ?', ['%'.Str::lower((string) $pickup).'%']);
             })
             ->when($destination !== null, function (Builder $query) use ($destination): void {
-                $query->whereRaw('LOWER(destination_address) LIKE ?', ['%' . Str::lower((string) $destination) . '%']);
+                $query->whereRaw('LOWER(destination_address) LIKE ?', ['%'.Str::lower((string) $destination).'%']);
             })
             ->orderByDesc('created_at')
             ->orderByDesc('id')
@@ -59,16 +60,28 @@ class OrderBoardController extends Controller
     {
         $driver = $request->user();
 
-        if (!$driver instanceof User) {
+        if (! $driver instanceof User) {
             abort(403);
         }
 
-        if (!$driver->hasVehicleDetails()) {
+        if (! $driver->hasVehicleDetails()) {
             return to_route('driver.orders.index')
                 ->with('error', 'Lengkapi nama kendaraan dan plat nomor pada profil Anda sebelum mengambil pesanan.');
         }
 
-        $wasTaken = DB::transaction(function () use ($driver, $order): bool {
+        Gate::authorize('take', $order);
+
+        $takeResult = DB::transaction(function () use ($driver, $order): string {
+            $hasActiveOrder = Order::query()
+                ->where('driver_id', $driver->id)
+                ->whereIn('status', ['taken', 'on_the_way'])
+                ->lockForUpdate()
+                ->exists();
+
+            if ($hasActiveOrder) {
+                return 'active';
+            }
+
             $availableOrder = Order::query()
                 ->whereKey($order->getKey())
                 ->where('status', 'open')
@@ -77,7 +90,7 @@ class OrderBoardController extends Controller
                 ->first();
 
             if ($availableOrder === null) {
-                return false;
+                return 'unavailable';
             }
 
             $availableOrder->driver()->associate($driver);
@@ -87,15 +100,81 @@ class OrderBoardController extends Controller
             $availableOrder->taken_at = now();
             $availableOrder->save();
 
-            return true;
+            return 'taken';
         });
 
-        if (!$wasTaken) {
+        if ($takeResult === 'active') {
+            return to_route('driver.orders.index')
+                ->with('error', 'Selesaikan pesanan aktif Anda sebelum mengambil pesanan baru.');
+        }
+
+        if ($takeResult === 'unavailable') {
             return to_route('driver.orders.index')
                 ->with('error', 'Pesanan ini sudah diambil atau tidak lagi tersedia.');
         }
 
         return to_route('driver.orders.index')
             ->with('success', 'Pesanan berhasil diambil.');
+    }
+
+    public function markOnTheWay(Request $request, Order $order): RedirectResponse
+    {
+        Gate::authorize('updateStatus', $order);
+
+        $updated = DB::transaction(function () use ($order): bool {
+            $assignedOrder = Order::query()
+                ->whereKey($order->getKey())
+                ->where('status', 'taken')
+                ->lockForUpdate()
+                ->first();
+
+            if ($assignedOrder === null) {
+                return false;
+            }
+
+            $assignedOrder->status = 'on_the_way';
+            $assignedOrder->save();
+
+            return true;
+        });
+
+        if (! $updated) {
+            return to_route('driver.dashboard')
+                ->with('error', 'Pesanan tidak dapat diubah dari status saat ini.');
+        }
+
+        return to_route('driver.dashboard')
+            ->with('success', 'Perjalanan telah dimulai.');
+    }
+
+    public function complete(Request $request, Order $order): RedirectResponse
+    {
+        Gate::authorize('updateStatus', $order);
+
+        $updated = DB::transaction(function () use ($order): bool {
+            $assignedOrder = Order::query()
+                ->whereKey($order->getKey())
+                ->where('status', 'on_the_way')
+                ->lockForUpdate()
+                ->first();
+
+            if ($assignedOrder === null) {
+                return false;
+            }
+
+            $assignedOrder->status = 'completed';
+            $assignedOrder->completed_at = now();
+            $assignedOrder->save();
+
+            return true;
+        });
+
+        if (! $updated) {
+            return to_route('driver.dashboard')
+                ->with('error', 'Pesanan hanya dapat diselesaikan setelah perjalanan dimulai.');
+        }
+
+        return to_route('driver.dashboard')
+            ->with('success', 'Pesanan berhasil diselesaikan.');
     }
 }
