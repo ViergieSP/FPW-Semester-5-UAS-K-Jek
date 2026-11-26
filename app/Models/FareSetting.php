@@ -14,8 +14,18 @@ class FareSetting extends Model
         'base_fare',
         'fare_per_km',
         'min_distance_km',
-        'is_active'
+        'is_active',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'base_fare' => 'decimal:2',
+            'fare_per_km' => 'decimal:2',
+            'min_distance_km' => 'decimal:2',
+            'is_active' => 'boolean',
+        ];
+    }
 
     // Scope untuk mengambil tarif yang sedang aktif
     public function scopeActive($query)

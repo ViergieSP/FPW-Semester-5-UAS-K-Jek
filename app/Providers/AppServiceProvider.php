@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\User;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +21,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Pengelolaan akun oleh admin hanya berlaku untuk mahasiswa (customer/driver).
+        Route::bind('student', function (string $value): User {
+            return User::query()->students()->findOrFail($value);
+        });
     }
 }

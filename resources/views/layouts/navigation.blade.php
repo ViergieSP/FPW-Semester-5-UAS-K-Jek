@@ -18,9 +18,9 @@
 
                     @if(auth()->user()->isAdmin())
                         {{-- Menu Khusus Admin --}}
-                        <x-nav-link href="#">Verifikasi & Pengguna</x-nav-link>
-                        <x-nav-link href="#">Master Lokasi</x-nav-link>
-                        <x-nav-link href="#">Master Tarif</x-nav-link>
+                        <x-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')">Verifikasi & Pengguna</x-nav-link>
+                        <x-nav-link :href="route('admin.locations.index')" :active="request()->routeIs('admin.locations.*')">Master Lokasi</x-nav-link>
+                        <x-nav-link :href="route('admin.fare-settings.index')" :active="request()->routeIs('admin.fare-settings.*')">Master Tarif</x-nav-link>
                         <x-nav-link href="#">Laporan</x-nav-link>
 
                     @elseif(auth()->user()->isDriver() && auth()->user()->isVerified())
@@ -98,7 +98,17 @@
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
 
-            @if(auth()->user()->isDriver() && auth()->user()->isVerified())
+            @if(auth()->user()->isAdmin())
+                <x-responsive-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')">
+                    Verifikasi & Pengguna
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('admin.locations.index')" :active="request()->routeIs('admin.locations.*')">
+                    Master Lokasi
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('admin.fare-settings.index')" :active="request()->routeIs('admin.fare-settings.*')">
+                    Master Tarif
+                </x-responsive-nav-link>
+            @elseif(auth()->user()->isDriver() && auth()->user()->isVerified())
                 <x-responsive-nav-link :href="route('driver.orders.index')" :active="request()->routeIs('driver.orders.*')">
                     Board Pesanan
                 </x-responsive-nav-link>
