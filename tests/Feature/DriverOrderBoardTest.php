@@ -110,11 +110,9 @@ class DriverOrderBoardTest extends TestCase
             ->post(route('driver.orders.take', $order))
             ->assertRedirect(route('driver.orders.index'));
 
-        $response = $this->actingAs($secondDriver)
-            ->post(route('driver.orders.take', $order));
-
-        $response->assertRedirect(route('driver.orders.index'))
-            ->assertSessionHas('error');
+        $this->actingAs($secondDriver)
+            ->post(route('driver.orders.take', $order))
+            ->assertForbidden();
 
         $this->assertDatabaseHas('orders', [
             'id' => $order->id,
@@ -142,6 +140,109 @@ class DriverOrderBoardTest extends TestCase
         ]);
     }
 
+    public function test_driver_cannot_take_a_second_order_while_an_order_is_active(): void
+    {
+        $driver = $this->createUser('driver');
+        $customer = $this->createUser('customer');
+        $activeOrder = $this->createOrder($customer, 'KJ-AKTIF', status: 'taken', driver: $driver);
+        $openOrder = $this->createOrder($customer, 'KJ-BARU');
+
+        $this->actingAs($driver)
+            ->post(route('driver.orders.take', $openOrder))
+            ->assertRedirect(route('driver.orders.index'))
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $openOrder->id,
+            'status' => 'open',
+            'driver_id' => null,
+        ]);
+        $this->assertSame('taken', $activeOrder->refresh()->status);
+    }
+
+    public function test_assigned_driver_can_move_order_from_taken_to_on_the_way(): void
+    {
+        $driver = $this->createUser('driver');
+        $customer = $this->createUser('customer');
+        $order = $this->createOrder($customer, 'KJ-JALAN', status: 'taken', driver: $driver);
+
+        $this->actingAs($driver)
+            ->patch(route('driver.orders.on-the-way', $order))
+            ->assertRedirect(route('driver.dashboard'))
+            ->assertSessionHas('success');
+
+        $this->assertSame('on_the_way', $order->refresh()->status);
+    }
+
+    public function test_assigned_driver_can_complete_on_the_way_order(): void
+    {
+        $driver = $this->createUser('driver');
+        $customer = $this->createUser('customer');
+        $order = $this->createOrder($customer, 'KJ-SELESAI', status: 'on_the_way', driver: $driver);
+
+        $this->actingAs($driver)
+            ->patch(route('driver.orders.complete', $order))
+            ->assertRedirect(route('driver.dashboard'))
+            ->assertSessionHas('success');
+
+        $order->refresh();
+        $this->assertSame('completed', $order->status);
+        $this->assertNotNull($order->completed_at);
+    }
+
+    public function test_other_driver_cannot_change_assigned_order_status(): void
+    {
+        $owner = $this->createUser('driver');
+        $otherDriver = $this->createUser('driver');
+        $customer = $this->createUser('customer');
+        $order = $this->createOrder($customer, 'KJ-MILIK-ORANG', status: 'taken', driver: $owner);
+
+        $this->actingAs($otherDriver)
+            ->patch(route('driver.orders.on-the-way', $order))
+            ->assertForbidden();
+
+        $this->assertSame('taken', $order->refresh()->status);
+    }
+
+    public function test_driver_cannot_skip_status_transitions(): void
+    {
+        $driver = $this->createUser('driver');
+        $customer = $this->createUser('customer');
+        $order = $this->createOrder($customer, 'KJ-LONCAT', status: 'taken', driver: $driver);
+
+        $this->actingAs($driver)
+            ->patch(route('driver.orders.complete', $order))
+            ->assertRedirect(route('driver.dashboard'))
+            ->assertSessionHas('error');
+
+        $this->assertSame('taken', $order->refresh()->status);
+        $this->assertNull($order->completed_at);
+    }
+
+    public function test_driver_dashboard_shows_active_order_and_today_metrics(): void
+    {
+        $driver = $this->createUser('driver');
+        $customer = $this->createUser('customer');
+        $activeOrder = $this->createOrder($customer, 'KJ-AKTIF-DASHBOARD', status: 'on_the_way', driver: $driver);
+        $completedOrder = $this->createOrder($customer, 'KJ-HARI-INI', status: 'completed', driver: $driver);
+        $completedOrder->update([
+            'completed_at' => now(),
+            'total_fare' => 25000,
+        ]);
+
+        $this->assertSame('on_the_way', $activeOrder->refresh()->status);
+        $this->assertSame(25000, (int) $completedOrder->refresh()->total_fare);
+
+        $this->actingAs($driver)
+            ->get(route('driver.dashboard'))
+            ->assertOk()
+            ->assertViewHas('activeOrder', fn (Order $order): bool => $order->is($activeOrder))
+            ->assertViewHas('completedToday', 1)
+            ->assertViewHas('earningsToday', fn ($earnings): bool => (float) $earnings === 25000.0)
+            ->assertSee('KJ-AKTIF-DASHBOARD')
+            ->assertSee('Rp25.000');
+    }
+
     private function createUser(
         string $role,
         string $verificationStatus = 'approved',
@@ -151,7 +252,7 @@ class DriverOrderBoardTest extends TestCase
         $id = str()->uuid()->toString();
 
         return User::create([
-            'name' => ucfirst($role) . ' Test',
+            'name' => ucfirst($role).' Test',
             'email' => "{$role}-{$id}@example.test",
             'npm' => $id,
             'phone_number' => '081234567890',
